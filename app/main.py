@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.routers import (
+    auth,
     clients,
     utilisateurs,
 )
@@ -8,6 +9,7 @@ from app.routers import (
 app = FastAPI(title="API Atelier de couture")
 
 app.include_router(utilisateurs.router, prefix="/api/v1")
+app.include_router(auth.router, prefix="/api/v1")
 app.include_router(clients.router, prefix="/api/v1")
 
 
