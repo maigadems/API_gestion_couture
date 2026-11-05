@@ -4,6 +4,7 @@ from app.routers import (
     auth,
     catalogue,
     clients,
+    commandes,
     livraisons,
     mesures,
     paiements,
@@ -19,6 +20,7 @@ app.include_router(catalogue.router, prefix="/api/v1")
 app.include_router(mesures.router, prefix="/api/v1")
 app.include_router(paiements.router, prefix="/api/v1")
 app.include_router(livraisons.router, prefix="/api/v1")
+app.include_router(commandes.router, prefix="/api/v1")
 
 
 @app.get("/health")
