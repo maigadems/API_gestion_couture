@@ -4,6 +4,7 @@ from app.routers import (
     auth,
     catalogue,
     clients,
+    mesures,
     utilisateurs,
 )
 
@@ -13,6 +14,7 @@ app.include_router(utilisateurs.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(clients.router, prefix="/api/v1")
 app.include_router(catalogue.router, prefix="/api/v1")
+app.include_router(mesures.router, prefix="/api/v1")
 
 
 @app.get("/health")
