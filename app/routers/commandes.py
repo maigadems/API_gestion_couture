@@ -62,7 +62,9 @@ def lire_commande(id: int, db: Session = Depends(get_db)):
     dependencies=[Depends(exiger_roles("accueil"))],
 )
 def modifier_commande(id: int, commande: CommandeUpdate, db: Session = Depends(get_db)):
-    raise route_a_implementer()
+    resultat = service.modifier_commande(db, id, commande)
+    db.commit()
+    return resultat
 
 
 @router.post("/commandes/{id}/statut", response_model=CommandeDetail)
@@ -87,14 +89,22 @@ def lire_historique(id: int, db: Session = Depends(get_db)):
     dependencies=[Depends(exiger_roles("accueil"))],
 )
 def ajouter_ligne(id: int, ligne: LigneCommandeCreate, db: Session = Depends(get_db)):
-    raise route_a_implementer()
+    resultat = service.ajouter_ligne(db, id, ligne)
+    db.commit()
+    return resultat
+
+
 @router.delete(
     "/commandes/{id}/lignes/{ligne_id}",
     response_model=CommandeDetail,
     dependencies=[Depends(exiger_roles("accueil"))],
 )
 def retirer_ligne(id: int, ligne_id: int, db: Session = Depends(get_db)):
-    raise route_a_implementer()
+    resultat = service.retirer_ligne(db, id, ligne_id)
+    db.commit()
+    return resultat
+
+
 @router.get("/clients/{id}/commandes", response_model=Page[CommandeListe])
 def lister_commandes_client(
     id: int,
