@@ -1,7 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.routers.commun import route_a_implementer
 from app.database import get_db
 from app.dependencies import exiger_roles, get_current_user
 from app.schemas.clients import ClientCreate, ClientRead, ClientResume, ClientUpdate, Genre
@@ -43,9 +42,10 @@ def modifier_client(id: int, client: ClientUpdate, db: Session = Depends(get_db)
 
 @router.delete("/{id}", status_code=204, dependencies=[Depends(exiger_roles("admin"))])
 def supprimer_client(id: int, db: Session = Depends(get_db)):
-    raise route_a_implementer()
+    service.supprimer_client(db, id)
+    db.commit()
 
 
 @router.get("/{id}/resume", response_model=ClientResume)
 def lire_resume_client(id: int, db: Session = Depends(get_db)):
-    raise route_a_implementer()
+    return service.resume_client(db, id)
