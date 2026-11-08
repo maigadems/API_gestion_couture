@@ -46,6 +46,37 @@ def recalculer_montants(commande: Commande) -> None:
     commande.montant_paye = sum(paiement.montant for paiement in commande.paiements)
 
 
+def _verifier_montants(commande: Commande) -> None:
+    somme = sum(ligne.quantite * ligne.prix_unitaire for ligne in commande.lignes)
+    if commande.remise > somme:
+        raise DonneesInvalides(
+            f"La remise ({commande.remise} FCFA) dépasse la somme des prestations ({somme} FCFA)"
+        )
+    paye = sum(paiement.montant for paiement in commande.paiements)
+    if somme - commande.remise < paye:
+        raise Conflit(
+            f"Le nouveau total ({somme - commande.remise} FCFA) serait inférieur "
+            f"au montant déjà payé ({paye} FCFA)"
+        )
+
+
+def _verifier_modifiable(commande: Commande) -> None:
+    """RG12 : une commande livrée ou annulée n'est plus modifiable."""
+    if commande.statut in STATUTS_FINAUX:
+        etat = "livrée" if commande.statut == "livree" else "annulée"
+        raise Conflit(f"Une commande {etat} n'est plus modifiable")
+
+
+def _verifier_lignes_modifiables(commande: Commande) -> None:
+    """RG10 : les lignes ne changent que tant que la commande est « en_attente »."""
+    _verifier_modifiable(commande)
+    if commande.statut != "en_attente":
+        raise Conflit(
+            "Les lignes ne sont modifiables que tant que la commande est « en_attente » "
+            f"(statut actuel : {commande.statut})"
+        )
+
+
 def _prochain_numero(db: Session) -> tuple[int, str]:
     """RG5 : CMD-AAAA-NNNNN. On réserve l'identifiant avant l'insertion pour en bâtir le numéro."""
     identifiant = db.scalar(text("SELECT nextval(pg_get_serial_sequence('commandes', 'id'))"))
@@ -163,3 +194,50 @@ def lister_commandes(
 def lister_commandes_client(db: Session, client_id: int, limit: int, offset: int) -> dict:
     client = lire_client(db, client_id)
     return lister_commandes(db, None, client.id, None, None, None, None, limit, offset)
+
+
+def modifier_commande(db: Session, commande_id: int, donnees: CommandeUpdate) -> Commande:
+    commande = lire_commande(db, commande_id, verrou=True)
+    _verifier_modifiable(commande)
+    champs = donnees.model_dump(exclude_unset=True)
+    if "mesure_id" in champs:
+        valeur = champs["mesure_id"]
+        commande.mesure_id = None if valeur is None else _mesure_du_client(db, commande.client_id, valeur)
+    if "date_livraison_prevue" in champs:
+        if champs["date_livraison_prevue"] < commande.date_commande:
+            raise DonneesInvalides(
+                "La date de livraison prévue ne peut pas précéder la date de commande"
+            )
+        commande.date_livraison_prevue = champs["date_livraison_prevue"]
+    if "remise" in champs:
+        commande.remise = champs["remise"]
+    if "notes" in champs:
+        commande.notes = champs["notes"]
+    _verifier_montants(commande)
+    recalculer_montants(commande)
+    db.flush()
+    return commande
+
+
+def ajouter_ligne(db: Session, commande_id: int, donnees: LigneCommandeCreate) -> Commande:
+    commande = lire_commande(db, commande_id, verrou=True)
+    _verifier_lignes_modifiables(commande)
+    commande.lignes.append(_creer_ligne(db, donnees))
+    recalculer_montants(commande)
+    db.flush()
+    return commande
+
+
+def retirer_ligne(db: Session, commande_id: int, ligne_id: int) -> Commande:
+    commande = lire_commande(db, commande_id, verrou=True)
+    _verifier_lignes_modifiables(commande)
+    ligne = next((ligne for ligne in commande.lignes if ligne.id == ligne_id), None)
+    if ligne is None:
+        raise Introuvable("Ligne introuvable dans cette commande")
+    if len(commande.lignes) == 1:
+        raise Conflit("Une commande garde toujours au moins une ligne")
+    commande.lignes.remove(ligne)
+    _verifier_montants(commande)
+    recalculer_montants(commande)
+    db.flush()
+    return commande
