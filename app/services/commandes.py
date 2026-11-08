@@ -241,3 +241,41 @@ def retirer_ligne(db: Session, commande_id: int, ligne_id: int) -> Commande:
     recalculer_montants(commande)
     db.flush()
     return commande
+
+
+def changer_statut(
+    db: Session, commande_id: int, donnees: ChangementStatut, utilisateur: Utilisateur
+) -> Commande:
+    commande = lire_commande(db, commande_id, verrou=True)
+    cible = donnees.statut.value
+    if cible == "annulee" and utilisateur.role == "tailleur":  # RG14
+        raise Interdit("Un tailleur ne peut pas annuler une commande")
+    verifier_transition(commande.statut, cible)  # RG13 + workflow
+    commentaire = (donnees.commentaire or "").strip() or None
+    if cible == "annulee" and commande.montant_paye > 0 and commentaire is None:  # RG14
+        raise DonneesInvalides(
+            "Cette commande a reçu un acompte : un commentaire est obligatoire pour préciser "
+            "le sort de l'argent (remboursement, avoir...)"
+        )
+    commande.historique.append(  # RG15
+        HistoriqueStatut(
+            ancien_statut=commande.statut,
+            nouveau_statut=cible,
+            commentaire=commentaire,
+            utilisateur_id=utilisateur.id,
+        )
+    )
+    commande.statut = cible
+    db.flush()
+    return commande
+
+
+def lire_historique(db: Session, commande_id: int) -> list[HistoriqueStatut]:
+    commande = lire_commande(db, commande_id)
+    return list(
+        db.scalars(
+            select(HistoriqueStatut)
+            .where(HistoriqueStatut.commande_id == commande.id)
+            .order_by(HistoriqueStatut.date_changement, HistoriqueStatut.id)
+        )
+    )
