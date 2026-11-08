@@ -52,3 +52,15 @@ def lister_clients(
     if genre is not None:
         requete = requete.where(Client.genre == genre.value)
     return paginer(db, requete, limit, offset)
+
+
+def modifier_client(db: Session, client_id: int, donnees: ClientUpdate) -> Client:
+    client = lire_client(db, client_id)
+    # Seuls les champs réellement envoyés sont modifiés (PATCH partiel)
+    champs = donnees.model_dump(exclude_unset=True, mode="json")
+    if "telephone" in champs:
+        verifier_telephone_libre(db, champs["telephone"], sauf_id=client.id)
+    for nom, valeur in champs.items():
+        setattr(client, nom, valeur)
+    db.flush()
+    return client
