@@ -25,7 +25,7 @@ def lister_clients(
     offset: int = Query(default=0, ge=0),
     db: Session = Depends(get_db),
 ):
-    raise route_a_implementer()
+    return service.lister_clients(db, q, genre, limit, offset)
 
 
 @router.get("/{id}", response_model=ClientRead)
