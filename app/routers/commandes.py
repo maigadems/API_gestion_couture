@@ -3,7 +3,6 @@ from datetime import date
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.routers.commun import route_a_implementer
 from app.database import get_db
 from app.dependencies import exiger_roles, get_current_user
 from app.models.utilisateur import Utilisateur
@@ -74,12 +73,14 @@ def changer_statut(
     utilisateur: Utilisateur = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    raise route_a_implementer()
+    resultat = service.changer_statut(db, id, changement, utilisateur)
+    db.commit()
+    return resultat
 
 
 @router.get("/commandes/{id}/historique", response_model=list[HistoriqueStatutRead])
 def lire_historique(id: int, db: Session = Depends(get_db)):
-    raise route_a_implementer()
+    return service.lire_historique(db, id)
 
 
 @router.post(
