@@ -1,4 +1,7 @@
 .venv
 .env
-__pycache__/            #fichiers du code précompilés Python. des fichiers générés automatiquement et temporaires
+# fichiers du code précompilés par Python : générés automatiquement et temporaires
+__pycache__/
 *.pyc
+# cache de pytest
+.pytest_cache/
