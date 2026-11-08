@@ -35,7 +35,9 @@ def lire_client(id: int, db: Session = Depends(get_db)):
 
 @router.patch("/{id}", response_model=ClientRead)
 def modifier_client(id: int, client: ClientUpdate, db: Session = Depends(get_db)):
-    raise route_a_implementer()
+    resultat = service.modifier_client(db, id, client)
+    db.commit()
+    return resultat
 
 
 @router.delete("/{id}", status_code=204)
