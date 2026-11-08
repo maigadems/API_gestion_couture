@@ -5,3 +5,5 @@ from app.models.mesure import Mesure  # noqa: F401
 from app.models.commande import Commande  # noqa: F401
 from app.models.ligne_commande import LigneCommande  # noqa: F401
 from app.models.historique_statut import HistoriqueStatut  # noqa: F401
+from app.models.paiement import Paiement  # noqa: F401
+from app.models.livraison import Livraison  # noqa: F401

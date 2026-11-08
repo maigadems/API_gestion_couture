@@ -40,6 +40,12 @@ class Commande(Base):
         cascade="all, delete-orphan",
         order_by="HistoriqueStatut.id",
     )
+    paiements: Mapped[list["Paiement"]] = relationship(
+        back_populates="commande", cascade="all, delete-orphan", order_by="Paiement.id"
+    )
+    livraison: Mapped["Livraison | None"] = relationship(
+        back_populates="commande", cascade="all, delete-orphan", uselist=False
+    )
 
     # Valeurs calculées, utilisées par les schémas de lecture
     @property
