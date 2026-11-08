@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.erreurs import enregistrer_gestionnaires
 from app.routers import (
     auth,
     catalogue,
@@ -13,6 +14,7 @@ from app.routers import (
 )
 
 app = FastAPI(title="API Atelier de couture")
+enregistrer_gestionnaires(app)
 
 app.include_router(utilisateurs.router, prefix="/api/v1")
 app.include_router(auth.router, prefix="/api/v1")
