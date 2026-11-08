@@ -3,11 +3,12 @@ from sqlalchemy.orm import Session
 
 from app.routers.commun import route_a_implementer
 from app.database import get_db
+from app.dependencies import exiger_roles, get_current_user
 from app.schemas.clients import ClientCreate, ClientRead, ClientResume, ClientUpdate, Genre
 from app.schemas.commun import Page
 from app.services import clients as service
 
-router = APIRouter(prefix="/clients", tags=["Clients"])
+router = APIRouter(prefix="/clients", tags=["Clients"], dependencies=[Depends(get_current_user)])
 
 
 @router.post("", response_model=ClientRead, status_code=201)
@@ -40,7 +41,7 @@ def modifier_client(id: int, client: ClientUpdate, db: Session = Depends(get_db)
     return resultat
 
 
-@router.delete("/{id}", status_code=204)
+@router.delete("/{id}", status_code=204, dependencies=[Depends(exiger_roles("admin"))])
 def supprimer_client(id: int, db: Session = Depends(get_db)):
     raise route_a_implementer()
 
