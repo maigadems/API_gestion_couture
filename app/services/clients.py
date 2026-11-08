@@ -5,6 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.exceptions import Conflit, Introuvable
 from app.models.client import Client
+from app.models.commande import Commande
+from app.models.mesure import Mesure
 from app.schemas.clients import ClientCreate, ClientUpdate, Genre
 from app.services.pagination import paginer
 
@@ -64,3 +66,37 @@ def modifier_client(db: Session, client_id: int, donnees: ClientUpdate) -> Clien
         setattr(client, nom, valeur)
     db.flush()
     return client
+
+
+def supprimer_client(db: Session, client_id: int) -> None:
+    client = lire_client(db, client_id)
+    nb_commandes = db.scalar(
+        select(func.count()).select_from(Commande).where(Commande.client_id == client.id)
+    )
+    if nb_commandes:
+        raise Conflit(f"Ce client a {nb_commandes} commande(s) : suppression impossible")
+    db.delete(client)  # ses mesures sont supprimées par la base (ON DELETE CASCADE)
+    db.flush()
+
+
+def resume_client(db: Session, client_id: int) -> dict:
+    client = lire_client(db, client_id)
+    nb, chiffre_affaires, total_paye, derniere = db.execute(
+        select(
+            func.count(Commande.id),
+            func.coalesce(func.sum(Commande.montant_total), 0),
+            func.coalesce(func.sum(Commande.montant_paye), 0),
+            func.max(Commande.date_commande),
+        ).where(Commande.client_id == client.id, Commande.statut != "annulee")
+    ).one()
+    nb_mesures = db.scalar(
+        select(func.count()).select_from(Mesure).where(Mesure.client_id == client.id)
+    )
+    return {
+        "nb_commandes": nb,
+        "chiffre_affaires": chiffre_affaires,
+        "total_paye": total_paye,
+        "solde_du": chiffre_affaires - total_paye,
+        "derniere_commande": derniere,
+        "a_des_mesures": nb_mesures > 0,
+    }
